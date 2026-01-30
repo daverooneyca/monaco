@@ -1,0 +1,92 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Monaco Test</title>
+    <style>
+      html,
+      body {
+          font-family: system-ui;
+          margin: 0;
+          height: 100%;
+      }
+
+      main {
+          display: flex;
+          flex-flow: column;
+          height: 100%;
+      }
+
+      h1 {
+          background: #00a7da;
+          color: #111111;
+          flex: 0 1 auto;
+          margin: 0;
+          overflow: hidden;
+          padding: 0.5rem 1rem;
+          text-overflow: ellipsis;
+          text-wrap: nowrap;
+      }
+
+      .buttons {
+          align-items: center;
+          display: flex;
+          gap: 0.5rem;
+          justify-content: center;
+          margin: 0.5rem 1rem 0;
+
+          & label {
+              box-sizing: border-box;
+              flex: 1 0 25%;
+              border: 1px solid #666666;
+              padding: 0.5rem;
+          }
+      }
+
+      #editor {
+          margin: 1rem auto;
+          flex: 1 1 auto;
+          width: 256px;
+          height: 97%;
+          border: 1px solid #ccc;
+      }
+
+      .whole-line-bg {
+          background-color: rgba(255, 0, 0, 0.3) !important;
+      }
+
+      .inline-inverse {
+          background-color: rgba(255, 255, 255) !important;
+          color: rgba(0, 0, 0) !important;
+      }
+
+      /* Our current cloaking implementation */
+      .monaco-editor .view-line:has(.cloaked) {
+          background-color: rgba(255, 0, 0, 0.3) !important;
+          width: 11rem;
+          z-index: 1;
+      }
+    </style>
+  </head>
+  <body>
+    <main>
+      <h1>Monaco Playground</h1>
+      <form class="buttons">
+        <label>
+          <input type="button" id="toggle-animation" value="Toggle Animation" />
+        </label>
+        <label>
+          <input type="range" id="speed" min="1" max="100" step="1" value="33" />
+          Speed
+        </label>
+        <label>
+          <input type="range" id="scale" min="-5" max="20" step="1" value="1" />
+          Scale
+        </label>
+      </form>
+      <div id="editor"></div>
+    </main>
+    <script type="module" src="/src/main.js"></script>
+  </body>
+</html>
