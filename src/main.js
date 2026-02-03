@@ -261,12 +261,12 @@ const editor = monaco.editor.create(document.getElementById('editor'), {
   wrappingIndent: 'none',
 
   // Set default font
-  fontFamily: 'Helvetica, Arial, sans-serif',
+  fontFamily: 'Impact',
   fontLigatures: false,
   fontVariations: false,
   fontWeight: 'normal',
-  fontSize: 14,
-  lineHeight: 0,
+  fontSize: 16,
+  lineHeight: 24,
   letterSpacing: 0,
 
   find: {
@@ -290,6 +290,21 @@ const scrollInterface = {
 // Initialize the ScrollAnimator with the scroll interface
 const scrollAnimator = new ScrollAnimator(scrollInterface, { animationDuration: 1000 });
 
+// Apply decoration with cs-prompt-output class to all text
+function applyPromptOutputDecoration() {
+  const lineCount = model.getLineCount();
+  const lastLineLength = model.getLineLength(lineCount);
+  const decorations = [{
+    range: new monaco.Range(1, 1, lineCount, lastLineLength + 1),
+    options: {
+      inlineClassName: 'cs-prompt-output'
+    }
+  }];
+  editor.createDecorationsCollection(decorations);
+}
+
+applyPromptOutputDecoration();
+
 Object.assign(globalThis, {
   editor,
   model,
@@ -298,6 +313,11 @@ Object.assign(globalThis, {
 
 const verticalScrollbarSize = 16;
 const horizontalScrollbarSize = 12;
+
+// Font size slider setup
+const fontSizeSlider = document.getElementById('font-size');
+const fontSizes = [12, 13, 14, 15, 16, 17, 18, 20, 24, 32];
+const fontSizeValue = document.getElementById('font-size-value');
 
 const scale = document.getElementById('scale');
 
@@ -312,18 +332,30 @@ scale.addEventListener('change', () => {
   const zoomLevel = (percentage - 100) / 10;
   monaco.editor.EditorZoom.setZoomLevel(zoomLevel);
   scaleValue.textContent = `${percentage}%`;
-});
+  
+  // Update decoration font size and line height proportionally to scale
+  const fontSizeSliderPosition = fontSizeSlider.valueAsNumber;
+  const baseFontSize = fontSizes[fontSizeSliderPosition];
+  const scaleFactor = percentage / 100;
+  const scaledFontSize = baseFontSize * scaleFactor;
+  const scaledFontSizeInRem = scaledFontSize / 16;
 
-// Font size slider setup
-const fontSizeSlider = document.getElementById('font-size');
-const fontSizes = [12, 13, 14, 15, 16, 17, 18, 20, 24, 32];
-const fontSizeValue = document.getElementById('font-size-value');
+  document.documentElement.style.setProperty('--prompt-output-font-size', `${scaledFontSizeInRem}rem`);
+});
 
 fontSizeSlider.addEventListener('change', () => {
   const sliderPosition = fontSizeSlider.valueAsNumber;
-  const fontSize = fontSizes[sliderPosition];
-  editor.updateOptions({ fontSize });
-  fontSizeValue.textContent = fontSize;
+  const baseFontSize = fontSizes[sliderPosition];
+  fontSizeValue.textContent = baseFontSize;
+  
+  // Apply scale factor to font size
+  const scaleSliderPosition = scale.valueAsNumber;
+  const scalePercentage = scalePercentages[scaleSliderPosition];
+  const scaleFactor = scalePercentage / 100;
+  const scaledFontSize = baseFontSize * scaleFactor;
+  const scaledFontSizeInRem = scaledFontSize / 16;
+
+  document.documentElement.style.setProperty('--prompt-output-font-size', `${scaledFontSizeInRem}rem`);
 });
 
 monaco.editor.EditorZoom.onDidChangeZoomLevel((zoomLevel) => {
