@@ -291,16 +291,20 @@ const scrollInterface = {
 const scrollAnimator = new ScrollAnimator(scrollInterface, { animationDuration: 1000 });
 
 // Apply decoration with cs-prompt-output class to all text
-function applyPromptOutputDecoration() {
+let promptOutputDecorationIds = [];
+
+function applyPromptOutputDecoration(lineHeight = 18) {
   const lineCount = model.getLineCount();
   const lastLineLength = model.getLineLength(lineCount);
   const decorations = [{
     range: new monaco.Range(1, 1, lineCount, lastLineLength + 1),
     options: {
-      inlineClassName: 'cs-prompt-output'
+      inlineClassName: 'cs-prompt-output',
+      inlineClassNameAffectsLetterSpacing: true,
+      lineHeight,
     }
   }];
-  editor.createDecorationsCollection(decorations);
+  promptOutputDecorationIds = editor.getModel().deltaDecorations(promptOutputDecorationIds, decorations);
 }
 
 applyPromptOutputDecoration();
@@ -355,7 +359,17 @@ fontSizeSlider.addEventListener('change', () => {
   const scaledFontSize = baseFontSize * scaleFactor;
   const scaledFontSizeInRem = scaledFontSize / 16;
 
+  console.log(`New font size is ${scaledFontSize}px`);
+  console.log(`Setting font size to ${scaledFontSizeInRem}rem`);
+
   document.documentElement.style.setProperty('--prompt-output-font-size', `${scaledFontSizeInRem}rem`);
+
+  // Update decoration with new line height
+  const lineHeight = Math.round(scaledFontSize * 1.25);
+
+  console.log(`Setting line height to ${lineHeight}px`);
+
+  applyPromptOutputDecoration(lineHeight);
 });
 
 monaco.editor.EditorZoom.onDidChangeZoomLevel((zoomLevel) => {
