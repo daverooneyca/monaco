@@ -405,6 +405,11 @@ toggleAnimationButton.addEventListener('click', toggleScrollAnimation);
 const speedSlider = document.getElementById('speed');
 const speedValue = document.getElementById('speed-value');
 
+// Initialize the expected increment for predictive coasting
+scrollAnimator.setExpectedIncrement(speedSlider.valueAsNumber);
+
 speedSlider.addEventListener('change', () => {
   speedValue.textContent = speedSlider.valueAsNumber;
+  // Update the animator's expected increment for smoother predictive motion
+  scrollAnimator.setExpectedIncrement(speedSlider.valueAsNumber);
 });

@@ -7,6 +7,17 @@ export default class ScrollAnimator {
     this.animatedTop = null;
     this.currentVelocity = 0;
     this.lastFrameTime = null;
+    this.expectedIncrement = 0;
+  }
+
+  /**
+   * Sets the expected scroll increment per interval for predictive coasting.
+   * When the animation reaches its target, it will continue toward a predicted
+   * next position to avoid hesitation between updates.
+   * @param {number} increment - The expected scroll distance per update interval
+   */
+  setExpectedIncrement(increment) {
+    this.expectedIncrement = increment;
   }
 
   /**
@@ -86,13 +97,16 @@ export default class ScrollAnimator {
       this.currentVelocity = (this.currentVelocity - omega * temp) * exp;
       this.animatedTop = this.targetTop + (change + temp) * exp;
 
-      // When we're close enough and velocity is low, snap to the target and stop the animation
-      // Use zoom-adjusted threshold to prevent sub-pixel jitter at non-integer zoom levels
+      // When close enough to target with low velocity, snap to target position
+      // and start coasting toward the predicted next target to avoid hesitation
       const stoppingThreshold = this.getStoppingThreshold();
       if (Math.abs(this.animatedTop - this.targetTop) < stoppingThreshold && Math.abs(this.currentVelocity) < 0.01) {
-        this.scrollInterface.setScrollTop(this.alignToZoom(this.targetTop));
-        this.stop();
-        return;
+        this.animatedTop = this.targetTop;
+        this.currentVelocity = 0;
+        // Predictive coasting: move toward expected next target position
+        if (this.expectedIncrement > 0) {
+          this.targetTop = this.targetTop + this.expectedIncrement;
+        }
       }
 
       // Align scroll position to zoom level to prevent sub-pixel rendering jitter
