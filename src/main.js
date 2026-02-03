@@ -1,5 +1,13 @@
 import * as monaco from 'monaco-editor';
 import editorWorker from 'monaco-editor/esm/vs/editor/editor.worker?worker';
+import ScrollAnimator from './ScrollAnimator.js';
+
+// Suppress benign ResizeObserver loop error from Monaco editor
+window.addEventListener('error', (event) => {
+  if (event.message?.includes('ResizeObserver loop')) {
+    event.stopImmediatePropagation();
+  }
+});
 
 self.MonacoEnvironment = {
   getWorker() {
@@ -273,9 +281,19 @@ const editor = monaco.editor.create(document.getElementById('editor'), {
   theme: 'cueit-dark',
 });
 
+// Create scroll interface for the ScrollAnimator
+const scrollInterface = {
+  getScrollTop: () => editor.getScrollTop(),
+  setScrollTop: (top) => editor.setScrollTop(top),
+};
+
+// Initialize the ScrollAnimator with the scroll interface
+const scrollAnimator = new ScrollAnimator(scrollInterface, { animationDuration: 1000 });
+
 Object.assign(globalThis, {
   editor,
   model,
+  scrollAnimator,
 });
 
 const verticalScrollbarSize = 16;
@@ -283,9 +301,29 @@ const horizontalScrollbarSize = 12;
 
 const scale = document.getElementById('scale');
 
+// Map slider positions (0-5) to scale percentages
+const scalePercentages = [100, 125, 150, 200, 250, 300];
+
+const scaleValue = document.getElementById('scale-value');
+
 scale.addEventListener('change', () => {
-  const value = scale.valueAsNumber;
-  monaco.editor.EditorZoom.setZoomLevel(value);
+  const sliderPosition = scale.valueAsNumber;
+  const percentage = scalePercentages[sliderPosition];
+  const zoomLevel = (percentage - 100) / 10;
+  monaco.editor.EditorZoom.setZoomLevel(zoomLevel);
+  scaleValue.textContent = `${percentage}%`;
+});
+
+// Font size slider setup
+const fontSizeSlider = document.getElementById('font-size');
+const fontSizes = [12, 13, 14, 15, 16, 17, 18, 20, 24, 32];
+const fontSizeValue = document.getElementById('font-size-value');
+
+fontSizeSlider.addEventListener('change', () => {
+  const sliderPosition = fontSizeSlider.valueAsNumber;
+  const fontSize = fontSizes[sliderPosition];
+  editor.updateOptions({ fontSize });
+  fontSizeValue.textContent = fontSize;
 });
 
 monaco.editor.EditorZoom.onDidChangeZoomLevel((zoomLevel) => {
@@ -307,53 +345,8 @@ monaco.editor.EditorZoom.onDidChangeZoomLevel((zoomLevel) => {
   containerDomNode.style.width = `${width}px`;
 });
 
-let currentScrollAnimation = null;
-
 function animateScroll(newTop, immediate = false) {
-
-  // Cancel any ongoing animation
-  if (currentScrollAnimation !== null) {
-    cancelAnimationFrame(currentScrollAnimation);
-    currentScrollAnimation = null;
-  }
-
-  const currentTop = editor.getScrollTop();
-  const distance = Math.abs(newTop - currentTop);
-
-  if (distance === 0) {
-    return;
-  }
-
-  // Calculate dynamic duration based on distance
-  // Longer distances = shorter duration (faster)
-  // Shorter distances = longer duration (slower)
-  const MIN_DURATION = 300; // Fastest (for long distances)
-  const MAX_DURATION = 1666; // Slowest (for short distances)
-  const DISTANCE_THRESHOLD = 1000; // Distance at which we hit minimum duration
-
-  // Inverse relationship: as distance increases, duration decreases
-  const calculatedDuration = MAX_DURATION - (distance / DISTANCE_THRESHOLD) * (MAX_DURATION - MIN_DURATION);
-  const duration = immediate ? 1 : Math.max(MIN_DURATION, Math.min(MAX_DURATION, calculatedDuration));
-
-  const startTime = performance.now();
-
-  const animate = (currentTime) => {
-    const elapsed = currentTime - startTime;
-    const progress = Math.min(elapsed / duration, 1);
-
-    const easeOut = 1 - Math.pow(1 - progress, 3);
-    const newScrollTop = currentTop + (newTop - currentTop) * easeOut;
-
-    editor.setScrollTop(newScrollTop);
-
-    if (progress < 1) {
-      currentScrollAnimation = requestAnimationFrame(animate);
-    } else {
-      currentScrollAnimation = null;
-    }
-  };
-
-  currentScrollAnimation = requestAnimationFrame(animate);
+  scrollAnimator.animateTo(newTop, immediate);
 }
 
 let currentTop = 0;
@@ -363,6 +356,10 @@ function startScrollAnimation() {
   if (animationIntervalId !== null) {
     return;
   }
+  
+  // Reset to the beginning when starting animation
+  currentTop = 0;
+  editor.setScrollTop(0);
   
   // Simulate our prompter engine sending us a new scroll position every 300ms
   animationIntervalId = setInterval(() => {
@@ -379,7 +376,7 @@ function startScrollAnimation() {
     } else {
       animateScroll(currentTop);
     }
-  }, 300);
+  }, 212); // 212ms is the average time between calls in the CueiT application
 }
 
 function stopScrollAnimation() {
@@ -389,10 +386,7 @@ function stopScrollAnimation() {
   }
   
   // Also cancel any ongoing scroll animation
-  if (currentScrollAnimation !== null) {
-    cancelAnimationFrame(currentScrollAnimation);
-    currentScrollAnimation = null;
-  }
+  scrollAnimator.stop();
 }
 
 function toggleScrollAnimation() {
@@ -409,3 +403,8 @@ toggleAnimationButton.addEventListener('click', toggleScrollAnimation);
 
 // Set up the speed slider
 const speedSlider = document.getElementById('speed');
+const speedValue = document.getElementById('speed-value');
+
+speedSlider.addEventListener('change', () => {
+  speedValue.textContent = speedSlider.valueAsNumber;
+});

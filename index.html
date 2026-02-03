@@ -78,11 +78,15 @@
         </label>
         <label>
           <input type="range" id="speed" min="1" max="100" step="1" value="33" />
-          Speed
+          Speed <span id="speed-value">33</span>
         </label>
         <label>
-          <input type="range" id="scale" min="-5" max="20" step="1" value="1" />
-          Scale
+          <input type="range" id="scale" min="0" max="5" step="1" value="0" />
+          Scale <span id="scale-value">100%</span>
+        </label>
+        <label>
+          <input type="range" id="font-size" min="0" max="9" step="1" value="2" />
+          Font Size <span id="font-size-value">14</span>
         </label>
       </form>
       <div id="editor"></div>
